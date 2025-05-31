@@ -6,21 +6,21 @@ def integrate_env_covariates(grid_fc, raster_list, output_fc):
     arcpy.env.overwriteOutput = True
     arcpy.CheckOutExtension("Spatial")
 
-    # Step 1: Copy the grid to a working output (now a .gdb feature class)
+    #Step 1: Copying the grid to a working output (now a .gdb feature class)
     arcpy.management.CopyFeatures(grid_fc, output_fc)
 
-    # Step 2: Determine zone field name
+    #Step 2: Determining zone field name
     fields = [f.name for f in arcpy.ListFields(output_fc)]
     zone_field = "OBJECTID" if "OBJECTID" in fields else "FID"
     print(f"Using zone field: {zone_field}")
 
-    # Step 3: Loop through rasters
+    #Step 3: Looping through rasters
     for raster in raster_list:
         print(f"Processing raster: {raster}")
         base_name = arcpy.Describe(raster).baseName
         stats_table = os.path.join("in_memory", f"{base_name}_stats")
 
-        # Run Zonal Statistics
+        #Running Zonal Statistics
         ZonalStatisticsAsTable(
             in_zone_data=output_fc,
             zone_field=zone_field,
@@ -30,7 +30,7 @@ def integrate_env_covariates(grid_fc, raster_list, output_fc):
             statistics_type="MEAN"
         )
 
-        # Join mean field back
+        #Joining mean field back
         arcpy.management.JoinField(
             in_data=output_fc,
             in_field=zone_field,
@@ -39,22 +39,20 @@ def integrate_env_covariates(grid_fc, raster_list, output_fc):
             fields=["MEAN"]
         )
 
-        # Rename "MEAN" to something descriptive
+        #Renaming "MEAN" to something more descriptive
         new_field = f"{base_name}_MEAN"
         try:
             arcpy.management.AlterField(
                 in_table=output_fc,
                 field="MEAN",
-                new_field_name=new_field[:10],  # truncate for shapefile limits
+                new_field_name=new_field[:10],
                 new_field_alias=new_field
             )
         except Exception as e:
             print(f"⚠️ Warning: Could not rename MEAN to {new_field}: {e}")
-            # Fall back: leave it as is
 
     print(f"\n✅ Enriched grid exported to: {output_fc}")
 
-# Example usage
 if __name__ == "__main__":
     grid_fc = r"C:\Users\KHendri\Desktop\Geog181C\Final_Project\wildflower_grid.shp"
 
